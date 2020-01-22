@@ -10,14 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 4) do
+ActiveRecord::Schema.define(version: 6) do
+
+  create_table "accounts", force: :cascade do |t|
+    t.string "user_name"
+    t.string "password"
+    t.integer "user_id"
+    t.string "user_type"
+  end
 
   create_table "campaigns", force: :cascade do |t|
-    t.string "dungeon_master"
     t.string "world"
-    t.string "bbg"
     t.string "day_of_play"
     t.integer "max_players"
+    t.integer "dm_id"
   end
 
   create_table "characters", force: :cascade do |t|
@@ -36,6 +42,10 @@ ActiveRecord::Schema.define(version: 4) do
     t.integer "constitution"
     t.integer "player_id"
     t.integer "campaign_id"
+  end
+
+  create_table "dms", force: :cascade do |t|
+    t.string "name"
   end
 
   create_table "players", force: :cascade do |t|

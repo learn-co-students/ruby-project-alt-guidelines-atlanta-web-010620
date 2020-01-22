@@ -1,6 +1,7 @@
 class Player < ActiveRecord::Base
     has_many :characters
     has_many :campaigns, through: :characters
+    has_many :accounts, as: :user
 
     def roll(times, dice, drop = 0)
         rolls = []
@@ -20,11 +21,11 @@ class Player < ActiveRecord::Base
         {strength: roll(4,6,1), dexterity: roll(4,6,1), constitution: roll(4,6,1), wisdom: roll(4,6,1), intelligence: roll(4,6,1), charisma: roll(4,6,1)}
     end
 
-    def make_character(name, character_class, race, armor_class, max_health, campaign_id)
-        character_hash = {name: name, character_class: character_class, race: race, armor_class: armor_class, level: 1, current_health: max_health, max_health: max_health, player_id: self.id, campaign_id: campaign_id}
-        character_hash = character_hash.merge(self.roll_character_stats)
-        Character.create(character_hash)
-    end
+    # def make_character(name, character_class, race, armor_class, max_health, campaign_id)
+    #     character_hash = {name: name, character_class: character_class, race: race, armor_class: armor_class, level: 1, current_health: max_health, max_health: max_health, player_id: self.id, campaign_id: campaign_id}
+    #     character_hash = character_hash.merge(self.roll_character_stats)
+    #     Character.create(character_hash)
+    # end
 
     def find_campaigns_by_day
         Campaign.where(day_of_play: self.availability)
@@ -36,5 +37,24 @@ class Player < ActiveRecord::Base
 
     def find_campaigns_by_day_and_opening
         find_campaigns_by_day & find_campaigns_by_opening
+    end
+
+    def menu(cli)
+        selection = cli.select("Player Main Menu", ["List Characters", "List Campaigns", "Find Campaign", "Change Day Availability", "Delete Character", "Character Menus", "Exit"])
+            if selection == "List Characters"
+                cli.player_list_characters(self)
+            elsif selection == "List Campaigns"
+                cli.player_list_campaigns(self)
+            elsif selection == "Find Campaign"
+                cli.player_find_campaign(self)
+            elsif selection == "Change Day Availability"
+                cli.player_change_day(self)
+            elsif selection == "Delete Character"
+                cli.player_destroy_character(self)
+            elsif selection == "Character Menus"
+                cli.select_character(self)
+            else
+                puts "Exiting"
+            end
     end
 end

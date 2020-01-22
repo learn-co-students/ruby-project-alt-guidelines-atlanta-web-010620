@@ -4,6 +4,8 @@ character_race_array = ["Dragonborn", "Dwarf", "Elf", "Gnome", "Half-elf", "Half
 Character.delete_all
 Player.delete_all
 Campaign.delete_all
+Dm.delete_all
+Account.delete_all
 
 def stat_roll #roll 4d6, drop the lowest roll
     rolls = []
@@ -19,7 +21,19 @@ end
 end
 
 5.times do
-    Campaign.create(dungeon_master: Faker::Name.name, world: Faker::Game.title, bbg: Faker::Name.name, day_of_play: day_array.sample, max_players: rand(3..8))
+    Dm.create(name: Faker::Name.name)
+end
+
+15.times do
+    Account.create(user_name: Faker::Internet.unique.username, password: Faker::Internet.password, user: Player.all.sample)
+end
+
+5.times do
+    Account.create(user_name: Faker::Internet.unique.username, password: Faker::Internet.password, user: Dm.all.sample)
+end
+
+5.times do
+    Campaign.create(dm_id: Dm.all.sample.id, world: Faker::Game.title, day_of_play: day_array.sample, max_players: rand(3..8))
 end
 
 10.times do

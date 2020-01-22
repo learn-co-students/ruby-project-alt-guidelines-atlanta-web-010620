@@ -43,23 +43,53 @@ class CommandLineInterface < TTY::Prompt
                   ")  #Art by Tua Xiong
     end
 
+    # def log_in
+    #     self.yes?('Are you a returning user?')   
+    # end
+
+    # def p_or_dm
+    #     self.select('Are you a player or DM? (Dungeon Master)', %w(Player DM))
+    # end
+
     def log_in
-        self.yes?('Are you a returning user?')   
-    end
-
-    def p_or_dm
-        self.select('Are you a player or DM? (Dungeon Master)', %w(Player DM))
-    end
-
-    def log_in_player
-        name = self.ask("Enter name")
-        if Player.find_by(name: name)
-            player = Player.find_by(name: name)
+        selection = select("Log in or make account:", ["Log In", "New Account"])
+        if selection == "Log In"
+            user_name = self.ask("Enter username: ")
+            password = self.mask("Enter password: ")
+            if Account.exists?(user_name: user_name, password: password)
+                account = Account.find_by(user_name: user_name, password: password)
+                account.user.menu(self)
+            else
+                puts "User does not exist"
+                self.log_in
+            end
         else
-            puts "ERROR: Player not found"
-            self.log_in_player
+            create_user
         end
     end
+
+    def create_user
+        user_name = ask("Enter username: ")
+        password = mask("Enter password: ")
+        p_or_dm = select("Is this account for a Player or Dungeon Master?", ["Player", "Dungeon Master"])
+        if p_or_dm == "Player"
+            user = create_player
+        else
+            user = create_dm
+        end
+        account = Account.create(user_name: user_name, password: password, user: user)
+        account.user.menu(self)
+    end
+
+    # def log_in_player
+    #     name = self.ask("Enter name")
+    #     if Player.find_by(name: name)
+    #         player = Player.find_by(name: name)
+    #     else
+    #         puts "ERROR: Player not found"
+    #         self.log_in_player
+    #     end
+    # end
 
     def create_player
         puts "Making new player profile"
@@ -68,59 +98,44 @@ class CommandLineInterface < TTY::Prompt
         Player.create(name: name, availability: availability)
     end
 
-    def make_dm
-        self.ask("What is your name?")
+    def create_dm
+        Dm.create(name: self.ask("What is your name?"))
     end
 
-    def player_menu(player)
-        selection = self.select("Player Main Menu", ["List Characters", "List Campaigns", "Find Campaign", "Change Day Availability", "Delete Character", "Character Menus", "Exit"])
-            if selection == "List Characters"
-                player_list_characters(player)
-            elsif selection == "List Campaigns"
-                player_list_campaigns(player)
-            elsif selection == "Find Campaign"
-                player_find_campaign(player)
-            elsif selection == "Change Day Availability"
-                player_change_day(player)
-            elsif selection == "Delete Character"
-                player_destroy_character(player)
-            elsif selection == "Character Menus"
-                select_character(player)
-            else
-                puts "Exiting"
-            end
-    end
+    
 
     def player_change_day(player)
         player.availability = self.select("What day are you available to play?", %w(Monday Tuesday Wednesday Thursday Friday Saturday Sunday))
-        player_menu(player)
+        player.menu(self)
     end
 
     def player_list_characters(player)
-        puts player.characters.map{|character| "#{character.name} the #{character.character_class}"}
-        player_menu(player)
+        player.characters.each{|character| puts "#{character.name} the #{character.character_class}"}
+        player.menu(self)
     end
 
     def player_list_campaigns(player)
         puts player.campaigns.map{|campaign| campaign.world}
-        player_menu(player)
+        player.menu(self)
     end
 
     def player_find_campaign(player)
         if player.find_campaigns_by_day_and_opening.any?
-            campaign = player.find_campaigns_by_day_and_opening.map{|campaign| "#{campaign.world} ran by #{campaign.dungeon_master} on #{campaign.day_of_play}"}
+            campaign = player.find_campaigns_by_day_and_opening.map{|campaign| "#{campaign.world} ran by #{campaign.dm.name} on #{campaign.day_of_play}"}
             puts campaign
             pick = self.yes?("Make a character for any of these campaigns?")
             if pick
                 selection = self.select("Which campaign?", campaign)
-                selection = selection.split(" ran by ")[1].split(" on ")[0]
-                campaign = Campaign.find_by(dungeon_master: selection)
+                selection = selection.split(" ran by ")
+                world = selection[0]
+                selection = selection[1].split(" on ")[0]
+                campaign = Campaign.find_by(dm_id: Dm.find_by(name: selection).id, day_of_play: player.availability, world: world)
                 player_make_character(player, campaign)
             end
         else
             puts "There's no campaign on your day off!"
         end
-        player_menu(player)
+        player.menu(self)
     end
 
     def player_make_character(player, campaign)
@@ -142,36 +157,48 @@ class CommandLineInterface < TTY::Prompt
             puts final_stats
             puts attri
             attributes.delete(attri)
-            x += 1
         end
         puts final_stats
         health = 10 + final_stats[:constitution]
         block = {name: name, character_class: character_class, race: race, armor_class: armor_class, max_health: health, current_health: health, level: 1, player_id: player.id, campaign_id: campaign.id}
         block = block.merge(final_stats)
         character = Character.create(block)
-        "Congratulations, your character is complete"
+        puts "\nCongratulations, your character is complete"
         puts "#{character.name} the #{character.character_class}"
     end
 
     def player_destroy_character(player)
-        character = self.select("What character would you like to delete?", player.characters.map{|character| character.name})
-        character = Character.find_by(name: character)
-        answer = self.yes?("Do you really want to delete #{character.name} the #{character.race} #{character.character_class}")
-        if answer
-            puts "Bye bye #{character.name}"
-            Character.destroy(character.id) 
+        if player.characters.empty?
+            puts "No characters to select!"
+            sleep(1)
+        else
+            character = self.select("What character would you like to delete?", player.characters.map{|character| character.name})
+            character = Character.find_by(name: character)
+            answer = self.yes?("Do you really want to delete #{character.name} the #{character.race} #{character.character_class}")
+            if answer
+                puts "Bye bye #{character.name}"
+                Character.destroy(character.id)
+                player.characters = player.characters.filter{|char| char != character}
+                player.save
+            end
         end
-        player_menu(player)
+        player.menu(self)
     end
 
     def select_character(player)
-        character = self.select("What character would you like to manage?", player.characters.map{|character| character.name})
-        character = Character.find_by(name: character)
-        character_menu(character)
+        if player.characters.empty?
+            puts "No characters to select!"
+            sleep(1)
+            player.menu(self)
+        else
+            character = self.select("What character would you like to manage?", player.characters.map{|character| character.name})
+            character = Character.find_by(name: character)
+            character_menu(character)
+        end
     end
 
     def character_menu(character)
-        selection = self.select("#{character.name}'s Menu", ["Party List", "Attack Party Member", "Heal Party Member", "Exit"])
+        selection = self.select("#{character.name}'s Menu", ["Party List", "Attack Party Member", "Heal Party Member", "Back to Player Menu", "Exit"])
         if selection == "Party List"
             puts character.party_members
             character_menu(character)
@@ -179,6 +206,10 @@ class CommandLineInterface < TTY::Prompt
             attack_party_member(character)
         elsif selection == "Heal Party Member"
             heal_party_member(character)
+        elsif selection == "Back to Player Menu"
+            character.player.menu(self)
+        else
+            puts "Exiting"
         end
     end
 
@@ -217,48 +248,4 @@ class CommandLineInterface < TTY::Prompt
         character_menu(character)
     end
 
-    def dm_menu(dm) 
-        selection = self.select("DM Main Menu", ["List Campaigns", "List Players", "List Characters", "Find Players", "Create Campaign", "Exit"])
-        if selection == "List Campaigns"
-            dm_list_campaigns(dm)
-        elsif selection == "List Players"
-            dm_list_players(dm)
-        elsif selection == "List Characters"
-            dm_list_characters(dm)
-        elsif selection == "Find Players"
-            dm_find_players(dm)
-        elsif selection == "Create Campaign"
-            create_campaign(dm)
-        end
-    end
-
-    def dm_list_campaigns(dm)
-        pp Campaign.where(dungeon_master: dm)
-        dm_menu(menu)
-    end
-
-    def dm_list_players(dm)
-        pp dm_list_campaigns(dm).map{|campaign| campaign.players}
-        dm_menu(dm)
-    end
-
-    def dm_list_characters(dm)
-        pp dm_list_campaigns(dm).map{|campaign| campaign.characters}
-        dm_menu(dm)
-    end
-
-    def dm_find_players(dm)
-        pp Campaign.find_by(dungeon_master: dm).find_players_with_availability
-        dm_menu(dm)
-    end
-
-    def create_campaign(dm) 
-        day = self.select("What day are you running your campaign?", %w(Monday Tuesday Wednesday Thursday Friday Saturday Sunday))
-        world = self.ask("What is the name/theme of your world?")
-        bbg = self.ask("What is the name of your main bad guy?")
-        max_players = self.ask("How many players would you like to set as your max?").to_i
-        campaign = Campaign.create(dungeon_master: dm, day_of_play: day, world: world, bbg: bbg, max_players: max_players)
-        pp campaign
-        dm_menu(dm)
-    end
 end

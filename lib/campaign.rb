@@ -1,6 +1,8 @@
 class Campaign < ActiveRecord::Base
+
     has_many :characters
     has_many :players, through: :characters
+    belongs_to :dm
 
     def player_opening?
         if max_players > players.size
