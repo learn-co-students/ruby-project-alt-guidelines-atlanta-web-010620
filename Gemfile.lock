@@ -66,6 +66,7 @@ PLATFORMS
 DEPENDENCIES
   activerecord (~> 5.2)
   faker
+  pastel
   pry
   require_all
   sinatra-activerecord

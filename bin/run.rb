@@ -1,7 +1,7 @@
 require_relative '../config/environment'
 
 system "clear"
-
+pastel = Pastel.new
 cli = CommandLineInterface.new
 old_logger = ActiveRecord::Base.logger
 ActiveRecord::Base.logger = nil
