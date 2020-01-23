@@ -25,6 +25,7 @@ class Dm < ActiveRecord::Base
         world = @cli.ask("What is the name/theme of your world?")
         max_players = @cli.ask("How many players would you like to set as your max?").to_i
         campaign = Campaign.create(dm_id: self.id, day_of_play: day, world: world, max_players: max_players)
+        campaigns.reload
         pp campaign
         menu(@cli)
     end

@@ -43,14 +43,6 @@ class CommandLineInterface < TTY::Prompt
                   ")  #Art by Tua Xiong
     end
 
-    # def log_in
-    #     self.yes?('Are you a returning user?')   
-    # end
-
-    # def p_or_dm
-    #     self.select('Are you a player or DM? (Dungeon Master)', %w(Player DM))
-    # end
-
     def log_in
         selection = select("Log in or make account:", ["Log In", "New Account"])
         if selection == "Log In"
@@ -80,16 +72,6 @@ class CommandLineInterface < TTY::Prompt
         account = Account.create(user_name: user_name, password: password, user: user)
         account.user.menu(self)
     end
-
-    # def log_in_player
-    #     name = self.ask("Enter name")
-    #     if Player.find_by(name: name)
-    #         player = Player.find_by(name: name)
-    #     else
-    #         puts "ERROR: Player not found"
-    #         self.log_in_player
-    #     end
-    # end
 
     def create_player
         puts "Making new player profile"
@@ -163,6 +145,7 @@ class CommandLineInterface < TTY::Prompt
         block = {name: name, character_class: character_class, race: race, armor_class: armor_class, max_health: health, current_health: health, level: 1, player_id: player.id, campaign_id: campaign.id}
         block = block.merge(final_stats)
         character = Character.create(block)
+        player.characters.reload
         puts "\nCongratulations, your character is complete"
         puts "#{character.name} the #{character.character_class}"
     end
@@ -178,7 +161,8 @@ class CommandLineInterface < TTY::Prompt
             if answer
                 puts "Bye bye #{character.name}"
                 Character.destroy(character.id)
-                player.characters = player.characters.filter{|char| char != character}
+                player.characters.reload
+                player.campaigns.reload
                 player.save
             end
         end

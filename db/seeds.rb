@@ -41,3 +41,7 @@ end
     Character.create(name: Faker::Name.name, character_class: character_class_array.sample, race: character_race_array.sample, level: rand(1..20), armor_class: rand(13..19), current_health: health, max_health: health, strength: stat_roll, dexterity: stat_roll, wisdom: stat_roll, intelligence: stat_roll, charisma: stat_roll, constitution: stat_roll, player_id: Player.all.sample.id, campaign_id: Campaign.all.sample.id)
 end
 
+mitch = Player.create(name: "Mitchell Goodwin", availability: "Friday")
+mitch_account = Account.create(user_name: "mitch210", password: "password", user: mitch)
+
+
