@@ -16,7 +16,7 @@ def stat_roll #roll 4d6, drop the lowest roll
 end
 
 
-15.times do
+20.times do
     Player.create(name: Faker::Name.name, availability: day_array.sample)
 end
 
@@ -41,7 +41,17 @@ end
     Character.create(name: Faker::Name.name, character_class: character_class_array.sample, race: character_race_array.sample, level: rand(1..20), armor_class: rand(13..19), current_health: health, max_health: health, strength: stat_roll, dexterity: stat_roll, wisdom: stat_roll, intelligence: stat_roll, charisma: stat_roll, constitution: stat_roll, player_id: Player.all.sample.id, campaign_id: Campaign.all.sample.id)
 end
 
+dm_basic = Dm.create(name: "Patrick Uzzeta")
+dm_account = Account.create(user_name: "dm", password: "dm123", user: dm_basic)
+campaign_basic = Campaign.create(dm_id: dm_basic.id, world: "Flatiron Fantasy", day_of_play: "Thursday", max_players: 6)
+
+3.times do
+    health = rand(10..20)
+    Character.create(name: Faker::Name.name, character_class: character_class_array.sample, race: character_race_array.sample, level: rand(1..20), armor_class: rand(13..19), current_health: health, max_health: health, strength: stat_roll, dexterity: stat_roll, wisdom: stat_roll, intelligence: stat_roll, charisma: stat_roll, constitution: stat_roll, player_id: Player.all.sample.id, campaign_id: campaign_basic.id)
+end
+
 mitch = Player.create(name: "Mitchell Goodwin", availability: "Friday")
 mitch_account = Account.create(user_name: "mitch210", password: "password", user: mitch)
 
-
+health = rand(10..20)
+Character.create(name: "Goober Doober", character_class: character_class_array.sample, race: character_race_array.sample, level: rand(1..20), armor_class: rand(13..19), current_health: health, max_health: health, strength: stat_roll, dexterity: stat_roll, wisdom: stat_roll, intelligence: stat_roll, charisma: stat_roll, constitution: stat_roll, player_id: mitch.id, campaign_id: campaign_basic.id)

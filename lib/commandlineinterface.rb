@@ -1,10 +1,10 @@
 class CommandLineInterface < TTY::Prompt
-    pastel = Pastel.new
+    @@pastel = Pastel.new
 
     def greet
-        pastel = Pastel.new
-        puts pastel.green("Hello! And welcome to the Adventurers League Finder App\n")
-        puts pastel.green("
+        # pastel = Pastel.new
+        puts @@pastel.green("Hello! And welcome to the Adventurers League Finder App\n")
+        puts @@pastel.green("
         
                                               /|                                                                        
                                              |\\|                                                                       
@@ -63,8 +63,8 @@ class CommandLineInterface < TTY::Prompt
     def create_user
         user_name = ask("Enter username: ")
         password = mask("Enter password: ")
-        p_or_dm = select("Is this account for a Player or Dungeon Master?", ["Player", "Dungeon Master"])
-        if p_or_dm == "Player"
+        user_type = select("Is this account for a Player or Dungeon Master?", ["Player", "Dungeon Master"])
+        if user_type == "Player"
             user = create_player
         else
             user = create_dm
@@ -93,11 +93,13 @@ class CommandLineInterface < TTY::Prompt
 
     def player_list_characters(player)
         player.characters.each{|character| puts "#{character.name} the #{character.character_class}"}
+        puts ""
         player.menu(self)
     end
 
     def player_list_campaigns(player)
         puts player.campaigns.map{|campaign| campaign.world}
+        puts ""
         player.menu(self)
     end
 
@@ -136,18 +138,16 @@ class CommandLineInterface < TTY::Prompt
         stat_pool.each do |x|
             attri = self.select("Select an attribute to assign #{x}", attributes)
             final_stats.merge!(attri.to_sym => x)
-            puts final_stats
-            puts attri
             attributes.delete(attri)
         end
-        puts final_stats
         health = 10 + final_stats[:constitution]
         block = {name: name, character_class: character_class, race: race, armor_class: armor_class, max_health: health, current_health: health, level: 1, player_id: player.id, campaign_id: campaign.id}
         block = block.merge(final_stats)
         character = Character.create(block)
-        player.characters.reload
+        player.reload
         puts "\nCongratulations, your character is complete"
         puts "#{character.name} the #{character.character_class}"
+        character.stats
     end
 
     def player_destroy_character(player)
@@ -161,8 +161,7 @@ class CommandLineInterface < TTY::Prompt
             if answer
                 puts "Bye bye #{character.name}"
                 Character.destroy(character.id)
-                player.characters.reload
-                player.campaigns.reload
+                player.reload
                 player.save
             end
         end
@@ -198,8 +197,7 @@ class CommandLineInterface < TTY::Prompt
     end
 
     def attack_party_member(character)
-        pastel = Pastel.new
-        puts pastel.red("
+        puts @@pastel.red("
                    _
         _         | |
        | | _______| |---------------------------------------------\\
@@ -215,21 +213,60 @@ class CommandLineInterface < TTY::Prompt
         end
         puts "Or, you just think they are mad ugly"
         sleep(2)
-        target = self.select("Pick a party member to attack", character.party_members)
-        target = Character.find_by(name: target.split(" the ")[0])
-        pp character
-        attribute = self.select("Which attribute would you like to attack with?", ["strength", "dexterity", "constitution", "wisdom", "intelligence", "charisma"])
-        character.attack(attribute, target)
+        if character.party_members.empty?
+            puts "No characters to select!"
+            sleep(1)
+        else
+            target = self.select("Pick a party member to attack", character.party_members)
+            target = Character.find_by(name: target.split(" the ")[0])
+            character.stats
+            attribute = self.select("Which attribute would you like to attack with?", ["strength", "dexterity", "constitution", "wisdom", "intelligence", "charisma"])
+            character.attack(attribute, target)
+        end
         character_menu(character)
     end
 
     def heal_party_member(character)
         puts "Oh no! Somebody has an owie"
         sleep(1)
-        target = self.select("Pick a party member to heal", character.party_members)
-        target = Character.find_by(name: target.split(" the ")[0])
-        character.heal(target)
+        if character.party_members.empty?
+            puts "No characters to select!"
+            sleep(1)
+        else
+            target = self.select("Pick a party member to heal", character.party_members)
+            target = Character.find_by(name: target.split(" the ")[0])
+            character.heal(target)
+        end
         character_menu(character)
     end
 
+    def self.death
+        puts @@pastel.red(
+            
+        
+        "     .... NO! ...                  ... MNO! ...
+        ..... MNO!! ...................... MNNOO! ...
+      ..... MMNO! ......................... MNNOO!! .
+     .... MNOONNOO!   MMMMMMMMMMPPPOII!   MNNO!!!! .
+      ... !O! NNO! MMMMMMMMMMMMMPPPOOOII!! NO! ....
+         ...... ! MMMMMMMMMMMMMPPPPOOOOIII! ! ...
+        ........ MMMMMMMMMMMMPPPPPOOOOOOII!! .....
+        ........ MMMMMOOOOOOPPPPPPPPOOOOMII! ...  
+         ....... MMMMM..    OPPMMP    .,OMI! ....
+          ...... MMMM::   o.,OPMP,.o   ::I!! ...
+              .... NNM:::.,,OOPM!P,.::::!! ....
+               .. MMNNNNNOOOOPMO!!IIPPO!!O! .....
+              ... MMMMMNNNNOO:!!:!!IPPPPOO! ....
+                .. MMMMMNNOOMMNNIIIPPPOO!! ......
+               ...... MMMONNMMNNNIIIOO!..........
+            ....... MN MOMMMNNNIIIIIO! OO ..........
+         ......... MNO! IiiiiiiiiiiiI OOOO ...........
+       ...... NNN.MNO! . O!!!!!!!!!O . OONO NO! ........
+        .... MNNNNNO! ...OOOOOOOOOOO .  MMNNON!........
+        ...... MNNNNO! .. PPPPPPPPP .. MMNON!........
+           ...... OO! ................. ON! .......
+              ................................
+     
+              ")
+    end
 end
