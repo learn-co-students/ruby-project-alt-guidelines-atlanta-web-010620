@@ -19,11 +19,12 @@ Installed TTY::Prompt
 
 greet method is where the user will create/login account
 
-<img src= "QuoteMe_cli_greet.png" height=150px>
+<img src= "images/QuoteMe_cli_greet.png" height=200px>
 
 game method will create a new game based on the actor you chose, then take you to the start of the game.
 
-<img src= "QuoteMe_cli_game.png" height=150px>
+
+<img src= "images/QuoteMe_game.png" height=250px>
 
 
 ========================
